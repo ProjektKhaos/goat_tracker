@@ -54,3 +54,7 @@ Varje get måste ha giltigt:
 - Ingen databas.
 - Ingen extern dependency.
 - All logik körs i klienten (browser).
+
+## Licens
+MIT License. Se LICENSE för full text.
+
