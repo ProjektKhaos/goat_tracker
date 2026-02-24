@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>🐐 Goat Tracker – Klövklipp</title>
+  <meta name="description" content="Enkel get-lista: namn + datum, dagar tickar, reset med ett klick. Offline, sparas lokalt." />
+<style>
+  :root{
+    /* Ljusblått tema */
+    --bg: #eef6ff;                 /* sidbakgrund */
+    --card: #ffffff;               /* kort */
+    --line: rgba(10, 70, 140, .14);/* linjer/borders */
+    --text: #0b2540;               /* huvudtext */
+    --muted: rgba(11, 37, 64, .65);/* dämpad text */
+    --accent: #2f80ed;             /* primär blå */
+    --accent-soft: rgba(47,128,237,.12);
+
+    --danger: #d92d20;
+    --ok: #12b76a;
+    --warn: #f79009;
+
+    --radius: 14px;
+    --shadow: 0 14px 34px rgba(16, 48, 84, .12);
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 18% 0%, rgba(47,128,237,.20), transparent 55%),
+      radial-gradient(900px 500px at 90% 10%, rgba(18,183,106,.10), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    padding:18px;
+
+    /* ✅ större text globalt */
+    font-size: 18px;     /* testa 17–20px */
+    line-height: 1.45;
+  }
+
+  .wrap{max-width:1100px;margin:0 auto}
+
+  header{
+    display:flex; gap:12px; align-items:flex-end; justify-content:space-between;
+    margin-bottom:14px;
+  }
+
+  /* ✅ större rubrik */
+  h1{margin:0;font-size:1.55rem;letter-spacing:.3px}
+
+  /* ✅ lite större småtexter */
+  .sub{color:var(--muted);font-size:1.05rem}
+  .mini{font-size:.95rem;color:var(--muted)}
+
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,1), rgba(255,255,255,.98));
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow: var(--shadow);
+  }
+
+  .flash{
+    display:none;
+    margin:10px 0 14px 0;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background: rgba(47,128,237,.06);
+
+    /* ✅ lite större text i flash */
+    font-size: 1.02rem;
+  }
+  .flash.ok{border-color: rgba(18,183,106,.35); background: rgba(18,183,106,.06)}
+  .flash.err{border-color: rgba(217,45,32,.35); background: rgba(217,45,32,.06)}
+  .flash.show{display:block}
+
+  .topform{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .topform .left{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
+  }
+
+  /* ✅ större labels */
+  label{display:block;font-size:.95rem;color:var(--muted);margin:0 0 6px 2px}
+
+  /* ✅ större inputs + padding */
+  input[type="text"], input[type="date"], textarea{
+    background: #f7fbff;
+    border:1px solid rgba(10,70,140,.18);
+    color:var(--text);
+    border-radius:12px;
+    padding:10px 12px;
+    outline:none;
+    width:100%;
+    max-width: 340px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.02);
+
+    font-size: 1.05rem;
+  }
+  input[type="text"]:focus, input[type="date"]:focus, textarea:focus{
+    border-color: rgba(47,128,237,.55);
+    box-shadow: 0 0 0 4px rgba(47,128,237,.14);
+    background: #ffffff;
+  }
+
+  input[type="date"]{max-width: 170px}
+
+  /* ✅ större knappar + padding */
+  .btn{
+    border:1px solid rgba(10,70,140,.18);
+    background: rgba(255,255,255,.9);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    transition: transform .08s ease, background .15s ease, box-shadow .15s ease;
+    white-space:nowrap;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+
+    font-size: 1.02rem;
+  }
+  .btn:hover{
+    background: #ffffff;
+    box-shadow: 0 10px 22px rgba(16,48,84,.10);
+  }
+  .btn:active{transform: scale(.98)}
+
+  .btn.primary{
+    background: linear-gradient(180deg, rgba(47,128,237,1), rgba(47,128,237,.92));
+    border-color: rgba(47,128,237,.65);
+    color: #ffffff;
+    box-shadow: 0 10px 22px rgba(47,128,237,.18);
+  }
+  .btn.primary:hover{
+    box-shadow: 0 14px 30px rgba(47,128,237,.24);
+  }
+
+  .btn.danger{
+    border-color: rgba(217,45,32,.45);
+    background: rgba(217,45,32,.06);
+    color: rgba(217,45,32,.98);
+  }
+
+  .btn.ghost{background: transparent}
+
+  /* ✅ small-knappar fortfarande mindre men nu mer läsbara */
+  .btn.small{padding:8px 10px; font-size: .98rem}
+
+  .grid{
+    display:grid;
+    grid-template-columns: 1.3fr 0.9fr 0.5fr 1.1fr;
+    gap:10px;
+    align-items:center;
+  }
+
+  /* ✅ lite större head-row */
+  .grid.head{
+    color:var(--muted);
+    font-size:.95rem;
+    padding:0 2px 10px 2px;
+    border-bottom:1px solid rgba(10,70,140,.12);
+    margin-bottom:10px;
+  }
+
+  .row{
+    padding:10px 2px;
+    border-bottom:1px solid rgba(10,70,140,.10);
+  }
+  .row:last-child{border-bottom:none}
+
+  .name{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  }
+
+  /* ✅ dagar lite större */
+  .days{
+    font-variant-numeric: tabular-nums;
+    font-size: 1.12rem;
+  }
+
+  /* ✅ badges större */
+  .badge{
+    display:inline-block;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(10,70,140,.14);
+    background: rgba(47,128,237,.08);
+    color: rgba(11,37,64,.75);
+    font-size:.95rem;
+    white-space:nowrap;
+  }
+  .badge.ok{
+    border-color: rgba(18,183,106,.30);
+    background: rgba(18,183,106,.10);
+    color: rgba(18,183,106,.95);
+  }
+  .badge.warn{
+    border-color: rgba(247,144,9,.35);
+    background: rgba(247,144,9,.12);
+    color: rgba(247,144,9,.98);
+  }
+  .badge.danger{
+    border-color: rgba(217,45,32,.30);
+    background: rgba(217,45,32,.10);
+    color: rgba(217,45,32,.98);
+  }
+
+  .actions{display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap}
+
+  .tools{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px solid rgba(10,70,140,.10);
+  }
+  .tool-left, .tool-right{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .count{color:var(--muted); font-size: 1.0rem;}
+  .search{max-width: 260px;}
+
+  dialog{
+    border:none;
+    border-radius:16px;
+    padding:0;
+    width:min(720px, 92vw);
+    background: #ffffff;
+    color:var(--text);
+    box-shadow: var(--shadow);
+  }
+  dialog::backdrop{background: rgba(16,48,84,.35)}
+
+  .dlg-head{
+    padding:14px 14px 10px 14px;
+    border-bottom:1px solid rgba(10,70,140,.10);
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    background: linear-gradient(180deg, rgba(47,128,237,.08), rgba(255,255,255,0));
+    border-top-left-radius:16px;
+    border-top-right-radius:16px;
+  }
+  .dlg-body{padding:12px 14px 14px 14px}
+
+  /* ✅ större monospace i textarea för export/import */
+  textarea{
+    max-width:none;
+    height: 220px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14px;
+    background:#f7fbff;
+  }
+
+  .hint{color:var(--muted); font-size:1.0rem; margin:8px 0 0 0}
+
+  @media (max-width: 860px){
+    .grid{grid-template-columns: 1fr 0.9fr 0.6fr 1fr}
+  }
+  @media (max-width: 680px){
+    .grid.head{display:none}
+    .grid.row{
+      grid-template-columns: 1fr;
+      gap:8px;
+      padding:12px 0;
+    }
+    .actions{justify-content:flex-start}
+    input[type="text"]{max-width:none}
+    .search{max-width:none; width:100%}
+    .tool-left, .tool-right{width:100%}
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🐐 Goat Tracker</h1>
+      <div class="sub">Klövklipp-logg — namn + datum → dagar tickar → reset med ett klick. </div>
+    </div>
+    <div class="mini">Idag: <b id="today"></b></div>
+  </header>
+
+  <div class="card">
+
+    <div id="flashOk" class="flash ok"></div>
+    <div id="flashErr" class="flash err"></div>
+
+    <!-- Lägg till -->
+    <form id="addForm" class="topform">
+      <div class="left">
+        <div>
+          <label for="name">Namn</label>
+          <input id="name" name="name" type="text" placeholder="t.ex. Berta" autocomplete="off" required />
+        </div>
+        <div>
+          <label for="date">Senast klippt (datum)</label>
+          <input id="date" name="date" type="date" required />
+        </div>
+        <div>
+          <button class="btn primary" type="submit">+ Lägg till</button>
+        </div>
+      </div>
+
+      <div style="min-width:240px">
+        <label for="search">Sök (valfritt)</label>
+        <input id="search" class="search" type="text" placeholder="Sök namn…" autocomplete="off" />
+        <div class="mini" style="margin-top:6px">Sortering: <b>flest dagar sedan</b> överst.</div>
+      </div>
+    </form>
+
+    <!-- Lista -->
+    <div class="grid head">
+      <div>Get</div>
+      <div>Senast (datum)</div>
+      <div>Dagar</div>
+      <div style="text-align:right;">Actions</div>
+    </div>
+
+    <div id="list"></div>
+
+    <!-- Verktygsrad -->
+    <div class="tools">
+      <div class="tool-left">
+        <span class="count" id="count"></span>
+        <button class="btn ghost small" type="button" id="sortToggleBtn" title="Växla sortering">
+          Sort: Flest dagar först
+        </button>
+      </div>
+      <div class="tool-right">
+        <button class="btn small" type="button" id="exportBtn">Export JSON</button>
+        <button class="btn small" type="button" id="importBtn">Import JSON</button>
+        <button class="btn danger small" type="button" id="wipeBtn">Rensa allt</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Import/export dialog -->
+<dialog id="dlg">
+  <div class="dlg-head">
+    <div>
+      <div style="font-weight:700" id="dlgTitle">Export</div>
+      <div class="mini" id="dlgSub">Kopiera eller spara som backup.</div>
+    </div>
+    <button class="btn small" id="dlgClose" type="button">Stäng</button>
+  </div>
+  <div class="dlg-body">
+    <textarea id="dlgText" spellcheck="false"></textarea>
+    <div class="hint" id="dlgHint"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center;justify-content:flex-end">
+      <button class="btn small" type="button" id="copyBtn">Kopiera</button>
+      <button class="btn primary small" type="button" id="applyImportBtn" style="display:none">Importera & ersätt</button>
+      <button class="btn small" type="button" id="downloadBtn" style="display:none">Ladda ner .json</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+/* =========================================================
+   Goat Tracker (Single-file, Offline)
+   - Sparar i LocalStorage
+   - Sorterar efter dagar sedan (default: flest först)
+   - Inline edit namn + datum
+   - Reset idag
+   - Export/Import JSON
+   ========================================================= */
+
+(() => {
+  const LS_KEY = "goat_tracker_v1_goats";
+  const LS_SORT_KEY = "goat_tracker_v1_sort_desc"; // "true" => flest dagar först
+  const $ = (sel) => document.querySelector(sel);
+
+  const todayEl = $("#today");
+  const addForm = $("#addForm");
+  const listEl = $("#list");
+  const countEl = $("#count");
+  const searchEl = $("#search");
+  const sortToggleBtn = $("#sortToggleBtn");
+
+  const flashOk = $("#flashOk");
+  const flashErr = $("#flashErr");
+
+  const exportBtn = $("#exportBtn");
+  const importBtn = $("#importBtn");
+  const wipeBtn = $("#wipeBtn");
+
+  const dlg = $("#dlg");
+  const dlgTitle = $("#dlgTitle");
+  const dlgSub = $("#dlgSub");
+  const dlgText = $("#dlgText");
+  const dlgHint = $("#dlgHint");
+  const dlgClose = $("#dlgClose");
+  const copyBtn = $("#copyBtn");
+  const applyImportBtn = $("#applyImportBtn");
+  const downloadBtn = $("#downloadBtn");
+
+  // ---- Date helpers ----
+  function pad2(n){ return String(n).padStart(2, "0"); }
+  function todayYmd() {
+    const d = new Date();
+    // Lokal tid (inte UTC)
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  }
+  function isValidYmd(ymd){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
+    const [y,m,d] = ymd.split("-").map(Number);
+    const dt = new Date(y, m-1, d);
+    return dt.getFullYear()===y && (dt.getMonth()+1)===m && dt.getDate()===d;
+  }
+  function daysSince(ymd){
+    if(!isValidYmd(ymd)) return 99999;
+    const [y,m,d] = ymd.split("-").map(Number);
+    const last = new Date(y, m-1, d);
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startLast = new Date(last.getFullYear(), last.getMonth(), last.getDate());
+    const diffMs = startToday - startLast;
+    if (diffMs < 0) return 0; // framtid -> 0 dagar
+    return Math.floor(diffMs / 86400000);
+  }
+
+  // ---- Storage ----
+  function loadGoats(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    }catch(e){
+      return [];
+    }
+  }
+  function saveGoats(goats){
+    localStorage.setItem(LS_KEY, JSON.stringify(goats));
+  }
+  function getSortDesc(){
+    const v = localStorage.getItem(LS_SORT_KEY);
+    return v === null ? true : v === "true";
+  }
+  function setSortDesc(val){
+    localStorage.setItem(LS_SORT_KEY, String(!!val));
+  }
+
+  // ---- UI helpers ----
+  let flashTimer = null;
+  function showFlash(type, text){
+    clearTimeout(flashTimer);
+    flashOk.classList.remove("show");
+    flashErr.classList.remove("show");
+    if(type === "ok"){
+      flashOk.textContent = text;
+      flashOk.classList.add("show");
+    } else {
+      flashErr.textContent = text;
+      flashErr.classList.add("show");
+    }
+    flashTimer = setTimeout(() => {
+      flashOk.classList.remove("show");
+      flashErr.classList.remove("show");
+    }, 2200);
+  }
+
+  function uid(){
+    // snabb, tillräckligt unik för lokal lista
+    return Math.random().toString(16).slice(2) + Date.now().toString(16);
+  }
+
+  function normalizeName(name){
+    return (name || "").trim().replace(/\s+/g, " ");
+  }
+
+  function badgeClass(days){
+    if(days >= 60) return "danger";
+    if(days >= 30) return "warn";
+    return "ok";
+  }
+
+  // ---- Render ----
+  function render(){
+    const goats = loadGoats();
+    const q = normalizeName(searchEl.value).toLowerCase();
+
+    const view = goats.map(g => ({
+      ...g,
+      days: daysSince(g.last || "")
+    })).filter(g => !q || (g.name || "").toLowerCase().includes(q));
+
+    const desc = getSortDesc();
+    view.sort((a,b) => {
+      const d = desc ? (b.days - a.days) : (a.days - b.days);
+      if (d !== 0) return d;
+      // vid lika dagar: sortera på namn så det känns stabilt
+      return (a.name || "").localeCompare(b.name || "", "sv");
+    });
+
+    sortToggleBtn.textContent = desc ? "Sort: Flest dagar först" : "Sort: Färskast först";
+    countEl.textContent = `Antal getter: ${goats.length}${q ? ` (visar ${view.length})` : ""}`;
+
+    if(view.length === 0){
+      listEl.innerHTML = `<div class="mini">Inget att visa. Lägg till en get ovan${q ? " (eller rensa sökfältet)." : "."}</div>`;
+      return;
+    }
+
+    listEl.innerHTML = view.map(g => {
+      const days = g.days;
+      const bc = badgeClass(days);
+      const badgeText = days >= 9999 ? "Kolla datum!" : `${days} dagar`;
+
+      return `
+        <div class="grid row">
+          <div class="name">
+            <input type="text"
+              class="nameInput"
+              data-id="${g.id}"
+              value="${escapeHtml(g.name || "")}"
+              title="Ändra namn (sparas när du lämnar fältet)"
+            />
+            <span class="badge ${bc}">${badgeText}</span>
+          </div>
+
+          <div>
+            <input type="date"
+              class="dateInput"
+              data-id="${g.id}"
+              value="${escapeHtml(g.last || "")}"
+              title="Ändra datum (sparas direkt)"
+            />
+          </div>
+
+          <div class="days">${days >= 9999 ? "—" : days}</div>
+
+          <div class="actions">
+            <button class="btn primary small resetBtn" data-id="${g.id}" type="button">Reset idag</button>
+            <button class="btn danger small delBtn" data-id="${g.id}" type="button">Ta bort</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // bind events (delegation hade funkat, men detta är tydligt & stabilt)
+    listEl.querySelectorAll(".resetBtn").forEach(btn => {
+      btn.addEventListener("click", () => resetToday(btn.dataset.id));
+    });
+    listEl.querySelectorAll(".delBtn").forEach(btn => {
+      btn.addEventListener("click", () => delGoat(btn.dataset.id));
+    });
+    listEl.querySelectorAll(".dateInput").forEach(inp => {
+      inp.addEventListener("change", () => setDate(inp.dataset.id, inp.value));
+    });
+    listEl.querySelectorAll(".nameInput").forEach(inp => {
+      inp.addEventListener("change", () => rename(inp.dataset.id, inp.value));
+      // mobilvänligt: enter sparar och stänger tangentbord lite oftare
+      inp.addEventListener("keydown", (e) => {
+        if(e.key === "Enter"){
+          e.preventDefault();
+          inp.blur();
+        }
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  // ---- Actions ----
+  function addGoat(name, last){
+    const goats = loadGoats();
+    goats.push({ id: uid(), name, last });
+    saveGoats(goats);
+    render();
+  }
+
+  function resetToday(id){
+    const goats = loadGoats();
+    const i = goats.findIndex(g => g.id === id);
+    if(i === -1) return;
+    goats[i].last = todayYmd();
+    saveGoats(goats);
+    render();
+    showFlash("ok", "Nollställd till idag.");
+  }
+
+  function setDate(id, date){
+    if(!isValidYmd(date)){
+      showFlash("err", "Ogiltigt datum.");
+      render();
+      return;
+    }
+    const goats = loadGoats();
+    const i = goats.findIndex(g => g.id === id);
+    if(i === -1) return;
+    goats[i].last = date;
+    saveGoats(goats);
+    render();
+    showFlash("ok", "Datum uppdaterat.");
+  }
+
+  function rename(id, name){
+    name = normalizeName(name);
+    if(!name){
+      showFlash("err", "Namn kan inte vara tomt.");
+      render();
+      return;
+    }
+    const goats = loadGoats();
+    const i = goats.findIndex(g => g.id === id);
+    if(i === -1) return;
+    goats[i].name = name;
+    saveGoats(goats);
+    render();
+    showFlash("ok", "Namn uppdaterat.");
+  }
+
+  function delGoat(id){
+    const goats = loadGoats();
+    const g = goats.find(x => x.id === id);
+    if(!g) return;
+    if(!confirm(`Ta bort ${g.name}?`)) return;
+    const next = goats.filter(x => x.id !== id);
+    saveGoats(next);
+    render();
+    showFlash("ok", "Borttagen.");
+  }
+
+  // ---- Export / Import ----
+  function exportJson(){
+    const goats = loadGoats();
+    const payload = {
+      app: "goat_tracker",
+      version: 1,
+      exported_at: new Date().toISOString(),
+      goats
+    };
+    return JSON.stringify(payload, null, 2);
+  }
+
+  function importJson(raw){
+    let obj;
+    try{ obj = JSON.parse(raw); }
+    catch{ throw new Error("JSON kunde inte tolkas."); }
+
+    // Tillåt två format: hela payloaden eller bara en array
+    let goats = null;
+
+    if(Array.isArray(obj)){
+      goats = obj;
+    } else if (obj && Array.isArray(obj.goats)){
+      goats = obj.goats;
+    }
+
+    if(!Array.isArray(goats)) throw new Error("JSON saknar 'goats' array.");
+
+    // Normalisera och validera lätt
+    const cleaned = goats.map(g => ({
+      id: (g.id && String(g.id)) || uid(),
+      name: normalizeName(g.name || ""),
+      last: String(g.last || "")
+    })).filter(g => g.name && isValidYmd(g.last));
+
+    if(cleaned.length === 0) throw new Error("Ingen giltig data hittades (kräver name + YYYY-MM-DD).");
+
+    saveGoats(cleaned);
+    render();
+    showFlash("ok", `Importerade ${cleaned.length} getter.`);
+  }
+
+  function openDialog(mode){
+    dlgText.value = "";
+    dlgHint.textContent = "";
+    applyImportBtn.style.display = "none";
+    downloadBtn.style.display = "none";
+
+    if(mode === "export"){
+      dlgTitle.textContent = "Export JSON (backup)";
+      dlgSub.textContent = "Kopiera eller ladda ner som fil.";
+      dlgText.value = exportJson();
+      dlgHint.textContent = "Tips: spara detta i en anteckning eller på moln/USB så har du backup.";
+      downloadBtn.style.display = "inline-block";
+    } else {
+      dlgTitle.textContent = "Import JSON";
+      dlgSub.textContent = "Klistra in JSON här (ersätter allt som finns i appen).";
+      dlgText.placeholder = "{ ... } eller [ ... ]";
+      dlgHint.textContent = "Varning: Import ersätter befintlig lista.";
+      applyImportBtn.style.display = "inline-block";
+    }
+
+    dlg.showModal();
+    setTimeout(() => dlgText.focus(), 50);
+  }
+
+  function downloadExport(){
+    const blob = new Blob([dlgText.value], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    const stamp = todayYmd().replaceAll("-","");
+    a.download = `goat_tracker_backup_${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---- Init ----
+  function init(){
+    todayEl.textContent = todayYmd();
+    $("#date").value = todayYmd();
+
+    // events
+    addForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = normalizeName($("#name").value);
+      const date = $("#date").value;
+
+      if(!name){
+        showFlash("err", "Skriv ett namn.");
+        return;
+      }
+      if(!isValidYmd(date)){
+        showFlash("err", "Välj ett giltigt datum.");
+        return;
+      }
+
+      addGoat(name, date);
+      $("#name").value = "";
+      $("#name").focus();
+      showFlash("ok", `Tillagd: ${name}`);
+    });
+
+    searchEl.addEventListener("input", () => render());
+
+    sortToggleBtn.addEventListener("click", () => {
+      setSortDesc(!getSortDesc());
+      render();
+    });
+
+    exportBtn.addEventListener("click", () => openDialog("export"));
+    importBtn.addEventListener("click", () => openDialog("import"));
+
+    wipeBtn.addEventListener("click", () => {
+      if(!confirm("Rensa ALLT? (Detta går inte att ångra)")) return;
+      localStorage.removeItem(LS_KEY);
+      render();
+      showFlash("ok", "Allt rensat.");
+    });
+
+    dlgClose.addEventListener("click", () => dlg.close());
+    copyBtn.addEventListener("click", async () => {
+      try{
+        await navigator.clipboard.writeText(dlgText.value);
+        dlgHint.textContent = "Kopierat ✅";
+      }catch{
+        dlgHint.textContent = "Kunde inte kopiera automatiskt. Markera texten och kopiera manuellt.";
+      }
+    });
+
+    applyImportBtn.addEventListener("click", () => {
+      if(!confirm("Import ersätter din nuvarande lista. Fortsätta?")) return;
+      try{
+        importJson(dlgText.value);
+        dlg.close();
+      }catch(err){
+        dlgHint.textContent = String(err.message || err);
+      }
+    });
+
+    downloadBtn.addEventListener("click", () => downloadExport());
+
+    // första render
+    render();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
