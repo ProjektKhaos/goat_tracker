@@ -1,6 +1,6 @@
 # Goat Tracker
 
-En enkel offline-app i en enda HTML-fil för att följa när varje get senast klipptes.
+En offline-app i en fil för att följa när varje get senast klipptes.
 
 ## Vad appen gör
 - Låter dig lägga till getter med `namn` och `senast klippt` (datum).
